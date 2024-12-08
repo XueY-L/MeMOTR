@@ -2,7 +2,11 @@
 """ run_bdd.py
 
 Run example:
-run_bdd.py --USE_PARALLEL False --METRICS Hota --TRACKERS_TO_EVAL qdtrack
+python run_bdd.py --SPLIT_TO_EVAL val \
+    --GT_FOLDER /root/BDD100K/labels/box_track_20/val \
+    --TRACKERS_FOLDER /root/MeMOTR/outputs/memotr_bdd100k/val/memotr_bdd100k_tracker \
+    --TRACKERS_TO_EVAL '' --TRACKER_SUB_FOLDER '' \
+    --USE_PARALLEL True --NUM_PARALLEL_CORES 8 
 
 Command Line Arguments: Defaults, # Comments
     Eval arguments:

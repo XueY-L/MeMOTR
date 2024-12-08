@@ -54,14 +54,10 @@ class BDD100K(_BaseDataset):
         self.class_list = [cls.lower() if cls.lower() in self.valid_classes else None
                            for cls in self.config['CLASSES_TO_EVAL']]
         if not all(self.class_list):
-            raise TrackEvalException('Attempted to evaluate an invalid class. Only classes [pedestrian, rider, car, '
-                                     'bus, truck, train, motorcycle, bicycle] are valid.')
-        self.super_categories = {"HUMAN": [cls for cls in ["pedestrian", "rider"] if cls in self.class_list],
-                                 "VEHICLE": [cls for cls in ["car", "truck", "bus", "train"] if cls in self.class_list],
-                                 "BIKE": [cls for cls in ["motorcycle", "bicycle"] if cls in self.class_list]}
+            raise TrackEvalException('Attempted to evaluate an invalid class. Only classes [pedestrian, rider, car, bus, truck, train, motorcycle, bicycle] are valid.')
+        self.super_categories = {"HUMAN": [cls for cls in ["pedestrian", "rider"] if cls in self.class_list], "VEHICLE": [cls for cls in ["car", "truck", "bus", "train"] if cls in self.class_list], "BIKE": [cls for cls in ["motorcycle", "bicycle"] if cls in self.class_list]}
         self.distractor_classes = ['other person', 'trailer', 'other vehicle']
-        self.class_name_to_class_id = {'pedestrian': 1, 'rider': 2, 'other person': 3, 'car': 4, 'bus': 5, 'truck': 6,
-                                       'train': 7, 'trailer': 8, 'other vehicle': 9, 'motorcycle': 10, 'bicycle': 11}
+        self.class_name_to_class_id = {'pedestrian': 1, 'rider': 2, 'other person': 3, 'car': 4, 'bus': 5, 'truck': 6, 'train': 7, 'trailer': 8, 'other vehicle': 9, 'motorcycle': 10, 'bicycle': 11}
 
         # Get sequences to eval
         self.seq_list = []
@@ -116,7 +112,7 @@ class BDD100K(_BaseDataset):
             data = json.load(f)
 
         # sort data by frame index
-        data = sorted(data, key=lambda x: x['index'])
+        data = sorted(data, key=lambda x: x['frameIndex'])
 
         # check sequence length
         if is_gt:
@@ -138,8 +134,7 @@ class BDD100K(_BaseDataset):
             keep_ids = []
             for i in range(len(data[t]['labels'])):
                 ann = data[t]['labels'][i]
-                if is_gt and (ann['category'] in self.distractor_classes or 'attributes' in ann.keys()
-                              and ann['attributes']['Crowd']):
+                if is_gt and (ann['category'] in self.distractor_classes or 'attributes' in ann.keys() and ann['attributes']['crowd']):
                     ig_ids.append(i)
                 else:
                     keep_ids.append(i)
@@ -226,12 +221,12 @@ class BDD100K(_BaseDataset):
 
             # Only extract relevant dets for this class for preproc and eval (cls)
             gt_class_mask = np.atleast_1d(raw_data['gt_classes'][t] == cls_id)
-            gt_class_mask = gt_class_mask.astype(np.bool)
+            gt_class_mask = gt_class_mask.astype(np.bool_)
             gt_ids = raw_data['gt_ids'][t][gt_class_mask]
             gt_dets = raw_data['gt_dets'][t][gt_class_mask]
 
             tracker_class_mask = np.atleast_1d(raw_data['tracker_classes'][t] == cls_id)
-            tracker_class_mask = tracker_class_mask.astype(np.bool)
+            tracker_class_mask = tracker_class_mask.astype(np.bool_)
             tracker_ids = raw_data['tracker_ids'][t][tracker_class_mask]
             tracker_dets = raw_data['tracker_dets'][t][tracker_class_mask]
             similarity_scores = raw_data['similarity_scores'][t][gt_class_mask, :][:, tracker_class_mask]

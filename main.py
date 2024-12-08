@@ -11,6 +11,16 @@ from utils.utils import distributed_rank
 from utils.utils import yaml_to_dict
 from configs.utils import update_config
 
+'''
+python -m torch.distributed.run --nproc_per_node=8 main.py --use-distributed --config-path configs/train_bdd100k.yaml --outputs-dir ./outputs/memotr_bdd100k_gam/ --batch-size 1 --data-root /root
+
+GAM训练
+python -m torch.distributed.run --nproc_per_node=8 main.py --mode gam --use-distributed --config-path configs/train_bdd100k_gam.yaml --outputs-dir ./outputs/memotr_bdd100k_gam/ --batch-size 1 --data-root /root
+
+修改eval-model来指定要推理的模型；
+在train_bdd100k.yaml里修改corruption和severity，只在命令里加没用
+python main.py --mode eval --data-root /root --config-path configs/train_bdd100k.yaml --eval-mode specific --eval-dir ./outputs/memotr_bdd100k/ --eval-model memotr_bdd100k.pth --eval-threads 8
+'''
 
 def parse_option():
     parser = argparse.ArgumentParser("Network training and evaluation script.", add_help=True)
@@ -87,6 +97,10 @@ def parse_option():
     parser.add_argument("--tp-drop-rate", type=float)
     parser.add_argument("--fp-insert-rate", type=float)
 
+    # corruption
+    parser.add_argument("--corruption", type=str, default=None)
+    parser.add_argument("--severity", type=int, default=None)
+
     return parser.parse_args()
 
 
@@ -101,14 +115,30 @@ def main(config: dict):
         torch.cuda.set_device(distributed_rank())
 
     from train_engine import train
+    from train_engine_gam import train_gam
     from submit_engine import submit
     from eval_engine import evaluate
+
     if config["MODE"] == "train":
         train(config=config)
     elif config["MODE"] == "submit":
         submit(config=config)
     elif config["MODE"] == "eval":
         evaluate(config=config)
+    elif config["MODE"] == 'gam':
+        config['grad_beta_0'] = 0.7
+        config['grad_beta_1'] = 0.8
+        config['grad_beta_2'] = 0.3
+        config['grad_beta_3'] = 0.2
+        config['grad_rho_max'] = 0.2
+        config['grad_rho_min'] = 0.02
+        config['grad_rho'] = 0.02
+        config['grad_norm_rho'] = 0.2
+        config['grad_norm_rho_max'] = 1.0
+        config['grad_norm_rho_min'] = 0.2
+        config['adaptive'] = False
+        config['grad_gamma'] = 0.02
+        train_gam(config=config)
     else:
         raise ValueError(f"Unsupported mode '{config['MODE']}'")
     return

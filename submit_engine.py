@@ -217,10 +217,15 @@ def submit(config: dict):
     if dataset_name == "DanceTrack" or dataset_name == "SportsMOT":
         data_split_dir = path.join(data_root, dataset_name, dataset_split)
     elif dataset_name == "BDD100K":
-        data_split_dir = path.join(data_root, dataset_name, "images/track/", dataset_split)
+        if config['CORRUPTION']:
+            c, s = config["CORRUPTION"], config["SEVERITY"]
+            data_split_dir = f'/root/BDD100K/images/track/val-corurupt/{c}-{s}'
+        else:
+            data_split_dir = path.join(data_root, dataset_name, "images/track/", dataset_split)
     else:
         data_split_dir = path.join(data_root, dataset_name, "images", dataset_split)
     seq_names = os.listdir(data_split_dir)
+    print(f'====> loading {data_split_dir}')
 
     if is_distributed():
         model = DDP(module=model, device_ids=[distributed_rank()], find_unused_parameters=False)

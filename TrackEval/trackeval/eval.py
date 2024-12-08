@@ -75,16 +75,13 @@ class Evaluator:
                     time_start = time.time()
                     if config['USE_PARALLEL']:
                         with Pool(config['NUM_PARALLEL_CORES']) as pool:
-                            _eval_sequence = partial(eval_sequence, dataset=dataset, tracker=tracker,
-                                                     class_list=class_list, metrics_list=metrics_list,
-                                                     metric_names=metric_names)
+                            _eval_sequence = partial(eval_sequence, dataset=dataset, tracker=tracker, class_list=class_list, metrics_list=metrics_list, metric_names=metric_names)
                             results = pool.map(_eval_sequence, seq_list)
                             res = dict(zip(seq_list, results))
                     else:
                         res = {}
                         for curr_seq in sorted(seq_list):
-                            res[curr_seq] = eval_sequence(curr_seq, dataset, tracker, class_list, metrics_list,
-                                                          metric_names)
+                            res[curr_seq] = eval_sequence(curr_seq, dataset, tracker, class_list, metrics_list, metric_names)
 
                     # Combine results over all sequences and then over all classes
 
@@ -95,8 +92,7 @@ class Evaluator:
                     for c_cls in class_list:
                         res['COMBINED_SEQ'][c_cls] = {}
                         for metric, metric_name in zip(metrics_list, metric_names):
-                            curr_res = {seq_key: seq_value[c_cls][metric_name] for seq_key, seq_value in res.items() if
-                                        seq_key is not 'COMBINED_SEQ'}
+                            curr_res = {seq_key: seq_value[c_cls][metric_name] for seq_key, seq_value in res.items() if seq_key is not 'COMBINED_SEQ'}
                             res['COMBINED_SEQ'][c_cls][metric_name] = metric.combine_sequences(curr_res)
                     # combine classes
                     if dataset.should_classes_combine:
@@ -135,14 +131,12 @@ class Evaluator:
                                 if c_cls in combined_cls_keys:
                                     table_res = {'COMBINED_SEQ': res['COMBINED_SEQ'][c_cls][metric_name]}
                                 else:
-                                    table_res = {seq_key: seq_value[c_cls][metric_name] for seq_key, seq_value
-                                                 in res.items()}
+                                    table_res = {seq_key: seq_value[c_cls][metric_name] for seq_key, seq_value in res.items()}
 
                                 if config['PRINT_RESULTS'] and config['PRINT_ONLY_COMBINED']:
                                     dont_print = dataset.should_classes_combine and c_cls not in combined_cls_keys
                                     if not dont_print:
-                                        metric.print_table({'COMBINED_SEQ': table_res['COMBINED_SEQ']},
-                                                           tracker_display_name, c_cls)
+                                        metric.print_table({'COMBINED_SEQ': table_res['COMBINED_SEQ']}, tracker_display_name, c_cls)
                                 elif config['PRINT_RESULTS']:
                                     metric.print_table(table_res, tracker_display_name, c_cls)
                                 if config['OUTPUT_SUMMARY']:

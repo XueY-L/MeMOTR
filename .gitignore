@@ -1,3 +1,4 @@
 .idea
 *.pth
 *.mp4
+outputs/

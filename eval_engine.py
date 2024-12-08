@@ -35,14 +35,13 @@ def evaluate(config: dict):
             raise ValueError("--eval-model should not be None.")
         metrics = eval_model(model=config["EVAL_MODEL"], eval_dir=eval_dir,
                              data_root=config['DATA_ROOT'], dataset_name=config["DATASET"], data_split=eval_split,
-                             threads=config["EVAL_THREADS"], port=port, config_path=config["CONFIG_PATH"])
+                             threads=config["EVAL_THREADS"], port=port, config_path=config["CONFIG_PATH"], config=config)
     elif config["EVAL_MODE"] == "continue":
         init_index = eval_states["NEXT_INDEX"]
         for i in range(init_index, 10000):
             model = "checkpoint_" + str(i) + ".pth"
             if os.path.exists(os.path.join(eval_dir, model)):
-                if os.path.exists(os.path.join(eval_dir, eval_split, model.split(".")[0] + "_tracker",
-                                               "pedestrian_summary.txt")):
+                if os.path.exists(os.path.join(eval_dir, eval_split, model.split(".")[0] + "_tracker", "pedestrian_summary.txt")):
                     pass
                 else:
                     metrics = eval_model(
@@ -63,8 +62,11 @@ def evaluate(config: dict):
     return
 
 
-def eval_model(model: str, eval_dir: str, data_root: str, dataset_name: str, data_split: str, threads: int, port: int,
-               config_path: str):
+def eval_model(model: str, eval_dir: str, data_root: str, dataset_name: str, data_split: str, threads: int, port: int, config_path: str, config):
+    '''
+    eval_dir  ./outputs/memotr_bdd100k/
+    data_root /root
+    '''
     print(f"===>  Running checkpoint '{model}'")
 
     if threads > 1:
@@ -78,7 +80,15 @@ def eval_model(model: str, eval_dir: str, data_root: str, dataset_name: str, dat
 
     # 将结果移动到对应的文件夹
     tracker_dir = os.path.join(eval_dir, data_split, "tracker")
-    tracker_mv_dir = os.path.join(eval_dir, data_split, model.split(".")[0] + "_tracker")
+    if config['CORRUPTION']:
+        tracker_mv_dir = os.path.join(
+            eval_dir, 
+            f'{data_split}-corruption_{model.split(".")[0]}_tracker', 
+            f"{config['CORRUPTION']}-{config['SEVERITY']}"
+        )
+    else:
+        tracker_mv_dir = os.path.join(eval_dir, data_split, model.split(".")[0] + "_tracker")
+    os.makedirs(tracker_mv_dir, exist_ok=True)
     os.system(f"mv {tracker_dir} {tracker_mv_dir}")
 
     # 进行指标计算
@@ -87,6 +97,8 @@ def eval_model(model: str, eval_dir: str, data_root: str, dataset_name: str, dat
         gt_dir = os.path.join(data_dir, data_split)
     elif "MOT17" in dataset_name:
         gt_dir = os.path.join(data_dir, "images", data_split)
+    elif  "BDD100K" in dataset_name:
+        gt_dir = os.path.join('/root/BDD100K/labels/box_track_20', data_split)
     else:
         raise NotImplementedError(f"Eval Engine DO NOT support dataset '{dataset_name}'")
     if dataset_name == "DanceTrack" or dataset_name == "SportsMOT":
@@ -111,6 +123,11 @@ def eval_model(model: str, eval_dir: str, data_root: str, dataset_name: str, dat
                       f"--SKIP_SPLIT_FOL True --TRACKERS_TO_EVAL '' --TRACKER_SUB_FOLDER ''  --USE_PARALLEL True "
                       f"--NUM_PARALLEL_CORES 8 --PLOT_CURVES False "
                       f"--TRACKERS_FOLDER {tracker_mv_dir} --BENCHMARK MOT17")
+    elif "BDD100K" in dataset_name:
+        os.system(f'python TrackEval/scripts/run_bdd.py --SPLIT_TO_EVAL {data_split} \
+                  --GT_FOLDER {gt_dir} \
+                  --TRACKERS_FOLDER {tracker_mv_dir} \
+                  --TRACKERS_TO_EVAL \'\' --TRACKER_SUB_FOLDER tracker --USE_PARALLEL True --NUM_PARALLEL_CORES 8 ')
     else:
         raise NotImplementedError(f"Do not support this Dataset name: {dataset_name}")
 
